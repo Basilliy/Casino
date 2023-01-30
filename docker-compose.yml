@@ -1,0 +1,81 @@
+version: "3.7"
+services:
+
+    app:
+        build:
+            args:
+                user: sammy
+                uid: 1000
+            context: ./
+            dockerfile: ./docker/php/Dockerfile
+        image: travellist
+        container_name: casino-app
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www
+        networks:
+            - pbnb6
+    db:
+        platform: linux/x86_64
+        image: mysql:5.7
+        container_name: casino-db
+        restart: unless-stopped
+        environment:
+             MYSQL_DATABASE: ${DB_DATABASE}
+             MYSQL_USER: ${DB_USERNAME}
+             MYSQL_PASSWORD: ${DB_PASSWORD}
+             MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+        ports:
+            # <Port exposed> : < MySQL Port running inside container>
+            - '3306:3306'
+        expose:
+            # Opens port 3306 on the container
+            - '3306'
+             # Where our data will be persisted
+        volumes:
+            - ./docker/mysql:/docker-entrypoint-initdb.d
+        networks:
+            - pbnb6
+    dbtesting:
+        platform: linux/x86_64
+        image: mysql:5.7
+        container_name: casino-dbtesting
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: testing
+            MYSQL_USER: tester
+            MYSQL_PASSWORD: test
+            MYSQL_ROOT_PASSWORD: test
+        ports:
+            - "3307:3306"
+        expose:
+            # Opens port 3307 on the container
+            - '3307'
+            # Where our data will be persisted
+        volumes:
+            - ./docker/mysql_test:/docker-entrypoint-initdb.d
+        networks:
+            - pbnb6
+    nginx:
+        image: nginx:1.17-alpine
+        container_name: casino-nginx
+        restart: unless-stopped
+        ports:
+            - "8000:80"
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx:/etc/nginx/conf.d
+        networks:
+            - pbnb6
+    redis:
+        container_name: casino-redis
+        image: redis:alpine
+        restart: always
+        ports:
+            - "6380:6379"
+        networks:
+            - pbnb6
+networks:
+    pbnb6:
+        driver: bridge
